@@ -1,93 +1,70 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
-
 # Faster nav_generate
 
-`nav_generate_fast` builds a Garry's Mod navigation mesh for the current map using every CPU core,
-without freezing the server.
+**Nav meshes in about a second, not minutes.** On a 94 × 94 m, multi-floor map, Garry's Mod's
+built-in `nav_generate` took 154 seconds. `nav_generate_fast` built an equivalent mesh in **1.2 seconds**,
+**128× faster**, using every CPU core while the server kept ticking.
 
-It follows the same generation steps as Valve's `nav_generate` (Source SDK 2013): sample walkable
-space on a 25-unit grid, build areas from the samples, then merge, connect and fix them up. The
-difference is where it runs. Vanilla generation runs on the game thread in small time slices.
-`navfast` loads the map's collision into its own thread-safe collision world and runs generation
-on worker threads, while the game keeps ticking.
-
-## How it works
-
-1. The addon's Lua reads the map's `.bsp` and every needed `.phy` file through the game filesystem,
-   so workshop maps and mounted content work. It also collects spawn points and the solid entities
-   that should block walking.
-2. The binary module parses the BSP brushes, displacements and static props into a frozen
-   collision world, then runs the generator across all cores at below-normal priority.
-3. The result is written to `garrysmod/maps/<map>.nav` (any existing file is kept as
-   `<map>.nav.bak`) and loaded with `navmesh.Load()`.
-
-The module only uses the Lua C API. It has no engine signatures or offsets, so GMod updates
-don't break it.
-
-The hiding, encounter and sniper spot analysis from vanilla is skipped. Only CS-style bots use
-that data; NextBots only need the areas and connections.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/bench/speed-dark.svg">
+  <img alt="nav_generate 154.3 s vs nav_generate_fast 1.2 s" src="docs/bench/speed-light.svg">
+</picture>
 
 ## Install
 
-Download `navfast.zip` from Releases and merge its `garrysmod/` folder into your server's
-`garrysmod/` folder:
+Download `navfast.zip` from Releases and merge its `garrysmod/` folder into your server's.
+It includes the module for every server type (32/64-bit, Windows/Linux) and a small addon.
 
-```
-garrysmod/lua/bin/gmsv_navfast_win64.dll    (64-bit Windows srcds, srcds_win64.exe)
-garrysmod/lua/bin/gmsv_navfast_win32.dll    (32-bit Windows srcds, srcds.exe)
-garrysmod/lua/bin/gmsv_navfast_linux64.dll  (64-bit Linux srcds)
-garrysmod/lua/bin/gmsv_navfast_linux.dll    (32-bit Linux srcds)
-garrysmod/addons/navfast/                    (Lua: commands, progress UI, viewer)
-```
+## Use
 
-GMod only loads the module matching the server process's bitness; shipping all four is harmless.
+Run `nav_generate_fast` in the server console, or in game as a superadmin. The mesh is saved
+to `maps/<map>.nav` (the old one is kept as `.nav.bak`) and loaded right away.
 
-## Usage
-
-Run in the server console, or as a superadmin from the in-game console:
-
-```
-nav_generate_fast
-```
-
-Progress is printed to the server console, and superadmins in game see a small progress panel.
-
-| Command | Meaning |
+| Command | What it does |
 | --- | --- |
-| `nav_generate_fast` | Generate and load the current map's nav mesh. Seeds come from every spawn point, your own position, and any marks. |
-| `nav_generate_fast_mark` | Mark where you stand as an extra starting point (like `nav_mark_walkable`), e.g. a floor below a big drop. Cleared on map change. |
-| `nav_generate_fast_clear_marks` | Remove all marks. |
-| `nav_generate_fast_cancel` | Cancel a running job. |
-| `nav_generate_fast_verify [count]` | Compare the module's traces against the engine's and save a report to `data/navfast/`. |
-| `nav_view_fast 1` / `0` | Client-side viewer for the loaded mesh, styled after `nav_edit 1`. No `sv_cheats` needed. `nav_view_fast_range` sets the draw distance. |
+| `nav_generate_fast` | Generate and load the nav mesh for the current map. |
+| `nav_generate_fast_mark` | Add where you stand as a starting point, for areas the spawns can't reach. |
+| `nav_generate_fast_clear_marks` | Forget all marks. |
+| `nav_generate_fast_cancel` | Stop a running generation. |
+| `nav_view_fast 1` | Show the mesh in game, like `nav_edit 1`, without `sv_cheats`. |
 
-| Convar | Default | Meaning |
-| --- | --- | --- |
-| `nav_generate_fast_threads` | `0` | Worker threads. `0` = every logical core. |
-| `nav_generate_fast_dump` | `0` | `1` also saves the job inputs to `garrysmod/data/navfast/<map>.navjob` for offline replay. |
+`nav_generate_fast_threads` sets the worker count (0 = all cores). Vanilla settings like
+`nav_slope_limit` still apply.
 
-The vanilla tuning convars (`nav_slope_limit`, `nav_area_max_size`, `nav_generate_fencetops`, ...)
-are read and respected.
+## Benchmark
+
+All numbers come from the same map and server on an i7-14700KF (28 threads). Vanilla's time is its
+own "Generation complete" message; ours runs from the command to the mesh being loaded.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/bench/map-dark.svg">
+  <img alt="Top-down view of the test map's nav mesh: 94 by 94 m, 18,673 square metres of walkable floor" src="docs/bench/map-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/bench/scaling-dark.svg">
+  <img alt="Generation time falls from 3.31 s on 1 thread to 0.62 s on 28 threads" src="docs/bench/scaling-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/bench/phases-dark.svg">
+  <img alt="Where the 1.2 seconds go: mostly parallel sampling" src="docs/bench/phases-light.svg">
+</picture>
+
+## How it works
+
+It follows the same steps as Valve's `nav_generate`. The difference is that it copies the map's
+collision into its own thread-safe structure, so the work runs on all cores instead of in small
+slices on the game thread. It doesn't use engine internals, so GMod updates don't break it.
+It skips the hiding/sniper-spot analysis that only CS-style bots use. Ladders aren't supported yet.
 
 ## Building
 
-Requires CMake 3.25+ and a C++20 compiler.
+CMake 3.25+ and a C++20 compiler: `cmake -S . -B build && cmake --build build --config Release`.
+`nav_generate_fast_verify` compares the module's traces against the engine's.
+`tools/bench/render.py` regenerates the benchmark charts.
 
-```
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-```
+## License
 
-Targets: `navfast_module` (the GMod module), `navfast_cli` (replays a `.navjob` offline) and
-`world_probe` (collision world checks against a `.bsp` on disk).
-
-CI builds all four modules on a private self-hosted Linux runner (clang-cl + xwin for Windows,
-clang for Linux, `-m32` via g++-multilib for 32-bit Linux).
-Pushing a `v*` tag publishes a release zip. The workflow has no `pull_request` trigger, so forks
-can never run jobs on that runner.
-
-## License note
-
-The generation logic is ported from Valve's Source SDK 2013 and is distributed under the
-[Source SDK license](https://github.com/ValveSoftware/source-sdk-2013/blob/master/LICENSE):
-free of charge, for use with Source engine games.
+Generation logic is ported from the
+[Source SDK 2013](https://github.com/ValveSoftware/source-sdk-2013/blob/master/LICENSE)
+and follows its license: free, for Source games.
