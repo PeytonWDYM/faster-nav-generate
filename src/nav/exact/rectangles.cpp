@@ -17,13 +17,13 @@ CellRef adjacent(const Heightfield& field, CellRef from, Direction dir) {
     return to;
 }
 
-bool fitsPlane(FloorPlane plane, FloorPlane other, Vec3 p, const GenerationParams& params) {
+bool fitsPlane(FloorPlane plane, FloorPlane other, Vec3 p, const GenerationParams& params, bool tread) {
     if (std::abs(other.normal.z - plane.normal.z) > std::max(params.slopeTolerance, 0.0f)) return false;
     const auto x = other.normal.x / other.normal.z - plane.normal.x / plane.normal.z;
     const auto y = other.normal.y / other.normal.z - plane.normal.y / plane.normal.z;
     // Bound deviation at the cell corners as well as its center.
     const auto deviation = std::abs(p.z - plane.heightAt(p)) + CellSize * 0.5f * (std::abs(x) + std::abs(y));
-    return deviation <= planeHeightTolerance(params);
+    return deviation <= (tread ? FloorSkin : planeHeightTolerance(params));
 }
 
 constexpr int TerrainPatchWidth = 64;
@@ -62,7 +62,8 @@ std::vector<CellRef> collectRegion(Heightfield& field, CellRef seed, std::uint32
                     continue;
                 claimed.set(index(p));
             } else if (other.displacement ||
-                       (cell.face != base.face && !fitsPlane(face.plane, other.plane, field.position(to), params))) {
+                       (cell.face != base.face && !fitsPlane(face.plane, other.plane, field.position(to),
+                                                            params, (base.attributes & Stairs) != 0))) {
                 continue;
             }
             cell.region = id;

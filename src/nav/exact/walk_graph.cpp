@@ -137,7 +137,6 @@ void visitTile(Heightfield& field, const CollisionWorld& world, float maxRise, T
 
 // Follow level cells to the next distinct tread, within a normal stair tread depth.
 CellRef nextTread(const Heightfield& field, CellRef from, Direction dir, float sign) {
-    const auto z = field[from].z;
     auto at = from;
     for (int i = 0; i < 4; ++i) {
         const auto to = field[at].links[dir];
@@ -145,9 +144,12 @@ CellRef nextTread(const Heightfield& field, CellRef from, Direction dir, float s
         const auto& cell = field[to];
         const auto& face = field.faces[cell.face];
         if (face.displacement || face.plane.normal.z < 0.99f) return {};
-        const auto rise = sign * (cell.z - z);
+        // A continuous shallow slope changes cell heights without introducing a riser.
+        const auto middle = (field.position(at) + field.position(to)) * 0.5f;
+        const auto& prior = field.faces[field[at].face].plane;
+        const auto rise = sign * (face.plane.heightAt(middle) - prior.heightAt(middle));
         if (std::abs(rise) <= FloorSkin) at = to;
-        else return rise >= 5 && rise <= StepHeight ? to : CellRef{};
+        else return rise > 0 && rise <= StepHeight ? to : CellRef{};
     }
     return {};
 }

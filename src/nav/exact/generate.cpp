@@ -3,9 +3,11 @@
 #include "job/thread_pool.h"
 #include "nav/area_builder.h"
 #include "nav/exact/rectangles.h"
+#include "nav/exact/stairs.h"
 #include "nav/exact/walk_graph.h"
 
 #include <algorithm>
+#include <string>
 #include <tuple>
 
 namespace navfast {
@@ -55,7 +57,11 @@ std::size_t generateExactNav(NavMesh& mesh, const CollisionWorld& world, std::sp
         });
         progress(static_cast<float>(start + count) / static_cast<float>(rectangles.size()), {});
     }
+    phase("ExactMergeStairs");
+    const auto merged = exact::mergeStairRuns(mesh, field, rectangles, areas, world, params, pool);
+    progress(1, std::to_string(merged) + " stair runs merged");
     for (std::size_t i = 0; i < areas.size(); ++i) {
+        if (field[rectangles[i].cells.front()].area != AreaId{}) continue;
         if (areas[i].width() < 1 || areas[i].height() < 1) continue;
         const auto id = mesh.add(std::move(areas[i]));
         for (const auto cell : rectangles[i].cells) field[cell].area = id;
