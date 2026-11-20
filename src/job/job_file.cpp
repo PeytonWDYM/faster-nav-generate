@@ -8,7 +8,8 @@ namespace navfast {
 namespace {
 
 constexpr std::string_view Magic = "NAVJOB";
-constexpr std::uint32_t Version = 1;
+constexpr std::uint32_t ClassicVersion = 1;
+constexpr std::uint32_t Version = 2;
 
 void blob(BinaryWriter& writer, std::span<const std::byte> bytes) {
     writer.put(binaryCount(bytes.size()));
@@ -24,11 +25,11 @@ std::vector<std::byte> blob(BinaryReader& reader) {
 
 void writeJobFile(const std::filesystem::path& path, const JobInputs& inputs) {
     BinaryWriter writer;
+    const auto& params = inputs.params;
     writer.append(std::as_bytes(std::span{Magic.data(), Magic.size()}));
-    writer.put(Version);
+    writer.put(params.exact ? Version : ClassicVersion);
     writer.put<std::uint8_t>(inputs.mode);
     writer.put<std::uint32_t>(inputs.threads);
-    const auto& params = inputs.params;
     writer.put(params.slopeLimit);
     writer.put(params.slopeTolerance);
     writer.put<std::int32_t>(params.displacementTest);
@@ -36,6 +37,7 @@ void writeJobFile(const std::filesystem::path& path, const JobInputs& inputs) {
     writer.put<std::uint8_t>(params.fixupJumpAreas);
     writer.put<std::uint8_t>(params.generateJumpConnections);
     writer.put<std::int32_t>(params.areaMaxSize);
+    if (params.exact) writer.put<std::uint8_t>(params.exact);
     writer.string(inputs.outputPath);
     writer.string(inputs.dumpPath);
     blob(writer, inputs.world.bsp);
@@ -65,7 +67,8 @@ OwnedJobInputs readJobFile(const std::filesystem::path& path) {
     BinaryReader reader(file);
     if (!std::ranges::equal(reader.take(Magic.size()), std::as_bytes(std::span{Magic.data(), Magic.size()})))
         throw std::runtime_error("Invalid .navjob signature");
-    if (reader.get<std::uint32_t>() != Version) throw std::runtime_error("Unsupported .navjob version");
+    const auto version = reader.get<std::uint32_t>();
+    if (version != ClassicVersion && version != Version) throw std::runtime_error("Unsupported .navjob version");
     OwnedJobInputs owned;
     auto& inputs = owned.inputs;
     const auto mode = reader.get<std::uint8_t>();
@@ -80,6 +83,7 @@ OwnedJobInputs readJobFile(const std::filesystem::path& path) {
     params.fixupJumpAreas = reader.get<std::uint8_t>() != 0;
     params.generateJumpConnections = reader.get<std::uint8_t>() != 0;
     params.areaMaxSize = reader.get<std::int32_t>();
+    if (version >= 2) params.exact = reader.get<std::uint8_t>() != 0;
     inputs.outputPath = reader.string();
     inputs.dumpPath = reader.string();
     owned.bsp = blob(reader);

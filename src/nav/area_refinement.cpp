@@ -189,6 +189,8 @@ bool testStairs(const CollisionWorld& world, const GenerationParams& params, con
     return result == StairTest::Yes;
 }
 
+} // namespace
+
 void markStairAreas(NavMesh& mesh, const CollisionWorld& world, const GenerationParams& params, ThreadPool& pool) {
     const auto ids = mesh.areaIds();
     pool.run(ids.size(), [&](std::size_t i) {
@@ -196,8 +198,6 @@ void markStairAreas(NavMesh& mesh, const CollisionWorld& world, const Generation
         if (testStairs(world, params, area)) area.attributes |= Stairs;
     });
 }
-
-} // namespace
 
 void refineGeneratedAreas(NavMesh& mesh, const CollisionWorld& world, const GenerationParams& params,
                           ThreadPool& pool, const Phase& phase) {

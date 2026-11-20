@@ -87,6 +87,8 @@ struct Geometry {
                          bool rayCollision, bool hullCollision);
 };
 
+std::vector<FloorFace> floorFaces(const Geometry& geometry, std::uint32_t mask, float minNormalZ);
+
 struct Sweep {
     Vec3 start, end, delta, extents;
     bool ray() const { return extents == Vec3{}; }

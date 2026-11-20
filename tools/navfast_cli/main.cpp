@@ -1,3 +1,4 @@
+#include "clearance_check.h"
 #include "pack.h"
 #include "report.h"
 #include "job/binary_io.h"
@@ -31,12 +32,16 @@ void run(int argc, char** argv) {
     inputs.inputs.outputPath = argv[3];
     inputs.inputs.dumpPath.clear();
     std::string_view json;
-    for (int i = 4; i < argc; i += 2) {
-        const std::string_view option = argv[i];
-        if (i + 1 == argc) throw std::runtime_error("Missing value for " + std::string(option));
-        if (option == "--threads") inputs.inputs.threads = threads(argv[i + 1]);
-        else if (option == "--json") json = argv[i + 1];
-        else throw std::runtime_error("Unknown option " + std::string(option));
+    for (int i = 4; i < argc;) {
+        const std::string_view option = argv[i++];
+        if (option == "--exact") inputs.inputs.params.exact = true;
+        else if (option == "--classic") inputs.inputs.params.exact = false;
+        else if (option == "--threads" || option == "--json") {
+            if (i == argc) throw std::runtime_error("Missing value for " + std::string(option));
+            const std::string_view value = argv[i++];
+            if (option == "--threads") inputs.inputs.threads = threads(value);
+            else json = value;
+        } else throw std::runtime_error("Unknown option " + std::string(option));
     }
     if (!json.empty() && std::filesystem::absolute(pathFromUtf8(json)).lexically_normal() ==
                          std::filesystem::absolute(pathFromUtf8(argv[3])).lexically_normal())
@@ -67,6 +72,10 @@ int main(int argc, char** argv) {
             run(argc, argv);
             return 0;
         }
+        if (command == "check-clearance" && argc == 3) {
+            checkClearance(pathFromUtf8(argv[2]), std::cin, std::cout);
+            return 0;
+        }
         if (command == "inspect" && (argc == 3 || ((argc == 4 || argc == 5) && std::string_view(argv[3]) == "--json"))) {
             const auto nav = navfast::inspectNav(pathFromUtf8(argv[2]));
             if (argc == 5) {
@@ -78,7 +87,8 @@ int main(int argc, char** argv) {
         }
         std::cerr << "Usage\n"
                      "  navfast_cli pack <map.bsp> <phyDir> <out.navjob>\n"
-                     "  navfast_cli run <job.navjob> <out.nav> [--threads N] [--json report.json]\n"
+                     "  navfast_cli run <job.navjob> <out.nav> [--exact | --classic] [--threads N] [--json report.json]\n"
+                     "  navfast_cli check-clearance <job.navjob> < points.txt\n"
                      "  navfast_cli inspect <file.nav> [--json [report.json]]\n";
         return 2;
     } catch (const std::exception& error) {

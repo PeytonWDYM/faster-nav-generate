@@ -3,6 +3,7 @@
 #include "job/job_file.h"
 #include "job/thread_pool.h"
 #include "nav/area_builder.h"
+#include "nav/exact/generate.h"
 #include "nav/nav_file.h"
 #include "nav/sampling.h"
 
@@ -131,15 +132,20 @@ void Job::run(OwnedJobInputs owned) {
         }
 
         if (inputs.mode == JobInputs::Generate) {
-            phase("SampleWalkableSpace");
+            phase(inputs.params.exact ? "ExactBinFloorFaces" : "SampleWalkableSpace");
             ThreadPool pool(stats.threads, cancelled_);
             NavMesh mesh;
-            mesh.nodes = sampleWalkableSpace(*world, inputs.seedPositions, inputs.params, pool, progress);
-            stats.nodes = mesh.nodes.size();
-            if (!stats.nodes) throw std::runtime_error("No walkable ground found at the given seeds");
-            phase("CreateAreasFromSamples");
-            createNavAreasFromNodes(mesh, *world, inputs.params, pool, progress);
-            refineGeneratedAreas(mesh, *world, inputs.params, pool, phase);
+            if (inputs.params.exact) {
+                stats.nodes = generateExactNav(mesh, *world, inputs.seedPositions, inputs.params, pool, phase, progress);
+                if (!stats.nodes) throw std::runtime_error("No walkable ground found at the given seeds");
+            } else {
+                mesh.nodes = sampleWalkableSpace(*world, inputs.seedPositions, inputs.params, pool, progress);
+                stats.nodes = mesh.nodes.size();
+                if (!stats.nodes) throw std::runtime_error("No walkable ground found at the given seeds");
+                phase("CreateAreasFromSamples");
+                createNavAreasFromNodes(mesh, *world, inputs.params, pool, progress);
+                refineGeneratedAreas(mesh, *world, inputs.params, pool, phase);
+            }
             stats.areas = mesh.areaIds().size();
             if (!stats.areas) throw std::runtime_error("No navigation areas could be generated");
             stats.connections = mesh.connectionCount();

@@ -14,4 +14,6 @@ void createNavAreasFromNodes(NavMesh& mesh, const CollisionWorld& world, const G
 void refineGeneratedAreas(NavMesh& mesh, const CollisionWorld& world, const GenerationParams& params,
                           ThreadPool& pool, const Phase& phase);
 
+void markStairAreas(NavMesh& mesh, const CollisionWorld& world, const GenerationParams& params, ThreadPool& pool);
+
 } // namespace navfast

@@ -10,6 +10,7 @@ require("navfast")
 local makeVerifier = include("navfast/verify.lua")
 local workerThreads = CreateConVar("nav_generate_fast_threads", "0", FCVAR_ARCHIVE, "Worker threads. 0 uses all logical cores.", 0)
 local dumpEnabled = CreateConVar("nav_generate_fast_dump", "0", FCVAR_ARCHIVE, "Save generation inputs for offline replay.", 0, 1)
+local exactGeneration = CreateConVar("nav_generate_fast_exact", "0", FCVAR_ARCHIVE, "Use collision geometry to generate the nav mesh.", 0, 1)
 local progressMessage = "navfast_progress"
 local pollTimer = "navfast_poll"
 util.AddNetworkString(progressMessage)
@@ -113,7 +114,7 @@ local function gameDirectory()
 end
 
 local function jobParams(map, worldOnly)
-    local params = {threads = workerThreads:GetInt(), mode = worldOnly and "world" or "generate"}
+    local params = {threads = workerThreads:GetInt(), mode = worldOnly and "world" or "generate", exact = exactGeneration:GetBool()}
     if not worldOnly then
         local directory = gameDirectory()
         params.outputPath = directory .. "/maps/" .. map .. ".nav"

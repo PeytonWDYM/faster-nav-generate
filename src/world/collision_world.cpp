@@ -28,6 +28,9 @@ public:
 
     std::uint32_t pointContents(Vec3 point) const override { return bvh_.pointContents(geometry_, point); }
     Aabb bounds() const override { return bounds_; }
+    std::vector<FloorFace> floorFaces(std::uint32_t mask, float minNormalZ) const override {
+        return detail::floorFaces(geometry_, mask, minNormalZ);
+    }
 
 private:
     Aabb bounds_;

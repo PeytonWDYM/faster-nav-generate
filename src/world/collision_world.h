@@ -47,6 +47,21 @@ struct TraceResult {
     bool didHit() const { return fraction < 1.0f || startSolid; }
 };
 
+struct FloorPlane {
+    Vec3 normal;
+    float distance;
+
+    float heightAt(Vec3 point) const {
+        return (distance - normal.x * point.x - normal.y * point.y) / normal.z;
+    }
+};
+
+struct FloorFace {
+    std::vector<Vec3> points;
+    FloorPlane plane;
+    bool displacement;
+};
+
 class CollisionWorld {
 public:
     virtual ~CollisionWorld() = default;
@@ -64,6 +79,9 @@ public:
 
     // World bounds (worldspawn model bounds).
     virtual Aabb bounds() const = 0;
+
+    // Upward collision polygons in world space, with true convex faces and hull-solid displacements.
+    virtual std::vector<FloorFace> floorFaces(std::uint32_t mask, float minNormalZ) const = 0;
 };
 
 // Lower-case static prop model paths referenced by the BSP's static prop game lump.
