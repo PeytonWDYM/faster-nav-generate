@@ -185,6 +185,7 @@ local function poll()
                     job.verify = makeVerifier(job.map, job.seeds, job.verifyCount, status.stats.worldMins, status.stats.worldMaxs)
                 else
                     navmesh.Load()
+                    hook.Run("NavFastMeshLoaded")
                     finish(job, "Done", string.format("Loaded %d areas in %.2f seconds.", status.stats.areas, status.stats.seconds))
                 end
             end
