@@ -6,9 +6,7 @@
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20·%2032%2F64--bit-555)
 [![License](https://img.shields.io/badge/license-Source%20SDK%202013-555)](https://github.com/ValveSoftware/source-sdk-2013/blob/master/LICENSE)
 
-**Nav meshes in about a second, not minutes.** On a 94 × 94 m, multi-floor map, Garry's Mod's
-built-in `nav_generate` took 154 seconds. `nav_generate_fast` built an equivalent mesh in **1.2 seconds**,
-**128× faster**, using every CPU core while the server kept ticking.
+## 128× faster nav generation
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/bench/speed-dark.svg">
