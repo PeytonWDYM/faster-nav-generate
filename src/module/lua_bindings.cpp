@@ -1,6 +1,7 @@
 #include "lua_input.h"
 
 #include <memory>
+#include <utility>
 
 namespace {
 
@@ -129,9 +130,11 @@ GMOD_MODULE_OPEN() {
     job = std::make_unique<Job>();
     LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
     LUA->CreateTable();
-    for (const auto& [name, function] : {std::pair{"StaticPropModels", StaticPropModels},
-         std::pair{"Start", Start}, std::pair{"Poll", Poll}, std::pair{"Cancel", Cancel},
-         std::pair{"TraceHull", TraceHull}}) {
+    // Explicit CFunc type: deducing std::pair from the function names breaks on GCC's libstdc++.
+    const std::pair<const char*, GarrysMod::Lua::CFunc> functions[]{
+        {"StaticPropModels", StaticPropModels}, {"Start", Start}, {"Poll", Poll},
+        {"Cancel", Cancel}, {"TraceHull", TraceHull}};
+    for (const auto& [name, function] : functions) {
         LUA->PushCFunction(function);
         LUA->SetField(-2, name);
     }
