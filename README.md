@@ -29,6 +29,7 @@ to `maps/<map>.nav` (the old one is kept as `.nav.bak`) and loaded right away.
 | `nav_generate_fast_mark` | Add where you stand as a starting point, for areas the spawns can't reach. |
 | `nav_generate_fast_clear_marks` | Forget all marks. |
 | `nav_generate_fast_cancel` | Stop a running generation. |
+| `nav_generate_fast_exact` | Select the generator. 0 uses classic sampling (default), 1 uses collision geometry. |
 | `nav_view_fast 1` | Show the mesh in game, like `nav_edit 1`, without `sv_cheats`. |
 
 `nav_generate_fast_threads` sets the worker count (0 = all cores). Vanilla settings like

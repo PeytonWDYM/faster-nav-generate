@@ -36,7 +36,7 @@ def parse(path):
         r.o += 8 + 16
         n = r.one("I"); r.o += 5 * n
         r.one("I")
-        areas.append({"id": aid, "attr": attr, "nw": nw, "se": se, "conns": conns})
+        areas.append({"id": aid, "attr": attr, "nw": nw, "se": se, "nez": nez, "swz": swz, "conns": conns})
     return {"bspSize": bsp, "analyzed": analyzed, "areas": areas}
 
 

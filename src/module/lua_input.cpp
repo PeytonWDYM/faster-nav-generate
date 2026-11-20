@@ -154,6 +154,7 @@ OwnedJobInputs readJobInputs(ILuaBase& lua) {
     assign(lua, "generate_fixup_jump_areas", params.fixupJumpAreas);
     assign(lua, "generate_jump_connections", params.generateJumpConnections);
     assign(lua, "area_max_size", params.areaMaxSize);
+    assign(lua, "exact", params.exact);
     return owned;
 }
 

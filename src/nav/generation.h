@@ -19,6 +19,7 @@ struct GenerationParams {
     bool fixupJumpAreas = true;
     bool generateJumpConnections = true;
     int areaMaxSize = 50;
+    bool exact = false;
 };
 
 using Progress = std::function<void(float, std::string_view)>;
