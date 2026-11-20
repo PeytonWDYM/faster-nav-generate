@@ -48,6 +48,15 @@ nav_generate_fast
 
 Progress is printed to the server console, and superadmins in game see a small progress panel.
 
+| Command | Meaning |
+| --- | --- |
+| `nav_generate_fast` | Generate and load the current map's nav mesh. Seeds come from every spawn point, your own position, and any marks. |
+| `nav_generate_fast_mark` | Mark where you stand as an extra starting point (like `nav_mark_walkable`), e.g. a floor below a big drop. Cleared on map change. |
+| `nav_generate_fast_clear_marks` | Remove all marks. |
+| `nav_generate_fast_cancel` | Cancel a running job. |
+| `nav_generate_fast_verify [count]` | Compare the module's traces against the engine's and save a report to `data/navfast/`. |
+| `nav_view_fast 1` / `0` | Client-side viewer for the loaded mesh, styled after `nav_edit 1`. No `sv_cheats` needed. `nav_view_fast_range` sets the draw distance. |
+
 | Convar | Default | Meaning |
 | --- | --- | --- |
 | `nav_generate_fast_threads` | `0` | Worker threads. `0` = every logical core. |
