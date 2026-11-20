@@ -1,5 +1,11 @@
 # Faster nav_generate
 
+[![Build](https://github.com/PeytonWDYM/faster-nav-generate/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/PeytonWDYM/faster-nav-generate/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/PeytonWDYM/faster-nav-generate?sort=semver)](https://github.com/PeytonWDYM/faster-nav-generate/releases/latest)
+![Garry's Mod](https://img.shields.io/badge/Garry's%20Mod-server%20module-1194f0)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20·%2032%2F64--bit-555)
+[![License](https://img.shields.io/badge/license-Source%20SDK%202013-555)](https://github.com/ValveSoftware/source-sdk-2013/blob/master/LICENSE)
+
 **Nav meshes in about a second, not minutes.** On a 94 × 94 m, multi-floor map, Garry's Mod's
 built-in `nav_generate` took 154 seconds. `nav_generate_fast` built an equivalent mesh in **1.2 seconds**,
 **128× faster**, using every CPU core while the server kept ticking.
