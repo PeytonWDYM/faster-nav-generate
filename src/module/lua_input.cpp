@@ -42,10 +42,16 @@ T integer(ILuaBase& lua, int index) {
     return static_cast<T>(value);
 }
 
+Vec3 finiteComponents(float x, float y, float z) {
+    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+        throw std::runtime_error("Expected finite vector or angle components");
+    return {x, y, z};
+}
+
 Vec3 angle(ILuaBase& lua, int index) {
     expect(lua, index, Type::Angle);
     const auto& angle = lua.GetAngle(index);
-    return {angle.x, angle.y, angle.z};
+    return finiteComponents(angle.x, angle.y, angle.z);
 }
 
 template <typename T>
@@ -88,7 +94,15 @@ std::span<const std::byte> bytes(ILuaBase& lua, int index) {
 Vec3 vector(ILuaBase& lua, int index) {
     expect(lua, index, Type::Vector);
     const auto& v = lua.GetVector(index);
-    return {v.x, v.y, v.z};
+    return finiteComponents(v.x, v.y, v.z);
+}
+
+Aabb hullBounds(ILuaBase& lua, int minsIndex, int maxsIndex) {
+    const auto mins = vector(lua, minsIndex);
+    const auto maxs = vector(lua, maxsIndex);
+    if (mins.x > maxs.x || mins.y > maxs.y || mins.z > maxs.z)
+        throw std::runtime_error("Trace hull mins must be at or below maxs on each axis");
+    return {mins, maxs};
 }
 
 std::uint32_t mask(ILuaBase& lua, int index) {

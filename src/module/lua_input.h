@@ -10,6 +10,7 @@ using GarrysMod::Lua::ILuaBase;
 
 std::span<const std::byte> bytes(ILuaBase& lua, int index);
 Vec3 vector(ILuaBase& lua, int index);
+Aabb hullBounds(ILuaBase& lua, int minsIndex, int maxsIndex);
 std::uint32_t mask(ILuaBase& lua, int index);
 OwnedJobInputs readJobInputs(ILuaBase& lua);
 

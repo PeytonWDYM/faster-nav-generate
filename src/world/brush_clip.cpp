@@ -9,19 +9,18 @@ void clip(const Sweep& sweep, const Solid& solid, const Plane* planes, SweepHit&
     float enter = 0, leave = 1;
     float hit = -std::numeric_limits<float>::infinity();
     const Plane* impact = nullptr;
-    bool startOut = false, endOut = false;
+    bool endOut = false;
     for (const auto& plane : std::span(planes, count)) {
         float distance = plane.distance;
         if constexpr (!Ray) distance += absVec(plane.normal).dot(sweep.extents);
         const float d1 = plane.normal.dot(sweep.start) - distance;
         const float d2 = plane.normal.dot(sweep.end) - distance;
         if (d1 > 0) {
-            if (d2 > 0) return;
-            startOut = true;
+            if (!(d2 <= 0)) return;
             const float inverse = 1.0f / (d1 - d2);
             enter = std::max(enter, d1 * inverse);
             const float backedOff = (d1 - traceEpsilon) * inverse;
-            if (backedOff > hit) {
+            if (!impact || backedOff > hit) {
                 hit = backedOff;
                 impact = &plane;
             }
@@ -34,7 +33,8 @@ void clip(const Sweep& sweep, const Solid& solid, const Plane* planes, SweepHit&
 
     // Keep the exact overlap interval so a grazing entry cannot disappear in one direction.
     // As in CM_ClipBoxToBrush, report an impact slightly before the entering plane.
-    if (!startOut) {
+    // Every entering plane records a candidate, even when its backed-off time is negative.
+    if (!impact) {
         auto& result = trace.result;
         result.startSolid = true;
         if (!endOut) {

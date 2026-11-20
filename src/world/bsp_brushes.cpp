@@ -78,6 +78,8 @@ void addBrush(const formats::BspReader& bsp, formats::Bytes sides, formats::Byte
               Geometry& geometry) {
     using formats::BspBrushSide;
     using formats::BspPlane;
+    constexpr int maxBrushSides = 128; // Source's MAX_BRUSH_SIDES.
+    if (brush.sideCount > maxBrushSides) throw std::runtime_error("brush exceeds MAX_BRUSH_SIDES (128)");
     if (brush.sideCount == 0 || brush.contents == 0) return;
     const auto records = sides.records(static_cast<std::size_t>(brush.firstSide) * sizeof(BspBrushSide),
                                        static_cast<std::size_t>(brush.sideCount), sizeof(BspBrushSide));

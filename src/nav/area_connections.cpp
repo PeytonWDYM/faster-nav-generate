@@ -8,6 +8,9 @@ namespace navfast {
 namespace {
 
 bool testJumpDown(const CollisionWorld& world, Vec3 from, Vec3 to) {
+    const float drop = from.z - to.z;
+    if (drop <= JumpCrouchHeight || drop >= DeathDrop) return false;
+
     for (float height = 1; height <= ClimbUpHeight; height += 1.0f) {
         const auto up = traceNav(world, from, from + Vec3{0,0,height});
         if (up.fraction <= 0 || up.startSolid) continue;

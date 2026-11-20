@@ -29,9 +29,12 @@ local tuning = {
 }
 local active
 local lastNetwork = -math.huge
+local markedSeeds = {}
 
-local function log(message)
-    print("[navfast] " .. message)
+local function log(message, ply)
+    message = "[navfast] " .. message
+    print(message)
+    if IsValid(ply) then ply:PrintMessage(HUD_PRINTCONSOLE, message) end
 end
 
 local function allowed(ply)
@@ -185,8 +188,14 @@ local function poll()
                     job.verify = makeVerifier(job.map, job.seeds, job.verifyCount, status.stats.worldMins, status.stats.worldMaxs)
                 else
                     navmesh.Load()
-                    hook.Run("NavFastMeshLoaded")
-                    finish(job, "Done", string.format("Loaded %d areas in %.2f seconds.", status.stats.areas, status.stats.seconds))
+                    local loaded = navmesh.GetNavAreaCount()
+                    if loaded == status.stats.areas then
+                        hook.Run("NavFastMeshLoaded")
+                        finish(job, "Done", string.format("Loaded %d areas in %.2f seconds.", loaded, status.stats.seconds))
+                    else
+                        finish(job, "Error", string.format("Error loading %s: expected %d areas, found %d.",
+                            job.outputPath, status.stats.areas, loaded))
+                    end
                 end
             end
         end
@@ -198,7 +207,7 @@ local function poll()
     end
 end
 
-local function start(verifyCount)
+local function start(ply, verifyCount)
     if active or navfast.Poll().running then
         log("A job is already running.")
         return
@@ -207,20 +216,43 @@ local function start(verifyCount)
     local started = SysTime()
     local worldOnly = verifyCount ~= nil
     local seeds = spawnPositions()
-    local ok, message = pcall(function()
+    if not worldOnly then
+        for _, pos in ipairs(markedSeeds) do seeds[#seeds + 1] = pos end
+        if IsValid(ply) then seeds[#seeds + 1] = ply:GetPos() end
+    end
+    local ok, outputPath = pcall(function()
         local bsp, phyFiles, solids = loadCollisionInputs(map, worldOnly)
-        navfast.Start(bsp, phyFiles, solids, seeds, jobParams(map, worldOnly))
+        local params = jobParams(map, worldOnly)
+        navfast.Start(bsp, phyFiles, solids, seeds, params)
+        return params.outputPath
     end)
     if not ok then
-        log(tostring(message))
+        log(tostring(outputPath))
         return
     end
-    active = {map = map, started = started, seeds = seeds, percent = -1, verifyCount = verifyCount}
+    if outputPath then log("Writing nav mesh to " .. outputPath) end
+    active = {map = map, started = started, seeds = seeds, percent = -1, verifyCount = verifyCount, outputPath = outputPath}
     timer.Create(pollTimer, 0.1, 0, poll)
 end
 
 concommand.Add("nav_generate_fast", function(ply)
-    if allowed(ply) then start() end
+    if allowed(ply) then start(ply) end
+end)
+
+concommand.Add("nav_generate_fast_mark", function(ply)
+    if not allowed(ply) then return end
+    if not IsValid(ply) then
+        log("Run nav_generate_fast_mark in-game to mark your feet position.")
+        return
+    end
+    markedSeeds[#markedSeeds + 1] = ply:GetPos()
+    log(string.format("Marked %d extra walkable seeds.", #markedSeeds), ply)
+end)
+
+concommand.Add("nav_generate_fast_clear_marks", function(ply)
+    if not allowed(ply) then return end
+    markedSeeds = {}
+    log("Cleared all extra walkable seeds.", ply)
 end)
 
 concommand.Add("nav_generate_fast_cancel", function(ply)
@@ -236,5 +268,5 @@ concommand.Add("nav_generate_fast_verify", function(ply, _, args)
         log("Usage: nav_generate_fast_verify [positive trace count]")
         return
     end
-    start(count)
+    start(ply, count)
 end)

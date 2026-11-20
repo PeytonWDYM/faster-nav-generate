@@ -105,8 +105,7 @@ LUA_FUNCTION(TraceHull) {
     return call(*LUA, [&] {
         const auto start = lua::vector(*LUA, 1);
         const auto end = lua::vector(*LUA, 2);
-        const auto mins = lua::vector(*LUA, 3);
-        const auto maxs = lua::vector(*LUA, 4);
+        const auto [mins, maxs] = lua::hullBounds(*LUA, 3, 4);
         const auto mask = lua::mask(*LUA, 5);
         const auto world = job->world();
         if (!world) throw std::runtime_error("No navfast collision world is ready");
