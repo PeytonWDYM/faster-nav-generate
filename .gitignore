@@ -26,6 +26,7 @@ plans/
 # Local test artifacts (navjob dumps, generated navs, reports)
 /artifacts/
 *.navjob
+__pycache__/
 
 # Editors / OS
 .vs/
