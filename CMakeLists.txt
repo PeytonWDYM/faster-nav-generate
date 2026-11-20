@@ -40,6 +40,10 @@ target_link_libraries(navfast_module PRIVATE navfast_core gmod-module-base)
 target_compile_options(navfast_module PRIVATE ${NAVFAST_WARNINGS})
 set_gmod_suffix_prefix(navfast_module)
 set_target_properties(navfast_module PROPERTIES OUTPUT_NAME navfast)
+if(UNIX)
+    # srcds ships its own older runtime; bundle ours so the module loads on any distro.
+    target_link_options(navfast_module PRIVATE -static-libstdc++ -static-libgcc)
+endif()
 
 # Offline tool: loads a .bsp from disk and probes the collision world (trace sanity checks, timing).
 file(GLOB_RECURSE NAVFAST_PROBE_SOURCES CONFIGURE_DEPENDS tools/world_probe/*.cpp)

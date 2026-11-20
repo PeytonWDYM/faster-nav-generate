@@ -1,6 +1,8 @@
 # Builds gmsv_navfast on the private self-hosted Linux runner:
-#   win64   - cross-compiled with clang-cl + xwin (LLVM 20 at /usr/lib/llvm-20/bin, SDK at /opt/xwin)
-#   linux64 - native clang
+#   win64 / win32     - cross-compiled with clang-cl + xwin (LLVM 20 at /usr/lib/llvm-20/bin;
+#                       SDK splats at /opt/xwin (x86_64) and /opt/xwin-x86)
+#   linux64 / linux32 - native clang (linux32 via g++-multilib)
+# 64-bit binaries are for the x86-64 branch; 32-bit ones for the default branch's 32-bit srcds.
 # Tags matching v* publish a release zip laid out like a server's garrysmod/ folder.
 #
 # Runner safety: there is deliberately no pull_request trigger, so fork PRs can never schedule
@@ -9,7 +11,7 @@ name: Build
 
 on:
   push:
-    branches: [master]
+    branches: ['**']
     tags: ['v*']
     paths-ignore: ['**/*.md']
   workflow_dispatch:
@@ -33,8 +35,13 @@ jobs:
 
       - name: Build win64
         run: |
-          cmake -S . -B build/win64 -G Ninja --toolchain cmake/clang-cl-xwin.cmake -DCMAKE_BUILD_TYPE=Release
-          cmake --build build/win64
+          cmake -S . -B build/win64 -G Ninja --toolchain cmake/clang-cl-xwin.cmake -DXWIN_ARCH=x86_64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/win64 --target navfast_module
+
+      - name: Build win32
+        run: |
+          cmake -S . -B build/win32 -G Ninja --toolchain cmake/clang-cl-xwin.cmake -DXWIN_ARCH=x86 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/win32 --target navfast_module
 
       - name: Build linux64
         run: |
@@ -42,11 +49,18 @@ jobs:
             -DCMAKE_CXX_COMPILER=/usr/lib/llvm-20/bin/clang++
           cmake --build build/linux64
 
+      - name: Build linux32
+        run: |
+          cmake -S . -B build/linux32 -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=/usr/lib/llvm-20/bin/clang++ -DCMAKE_CXX_FLAGS=-m32
+          cmake --build build/linux32 --target navfast_module
+
       - name: Package
         run: |
           rm -rf dist && mkdir -p dist/garrysmod/lua/bin dist/garrysmod/addons
-          cp build/win64/gmsv_navfast_win64.dll dist/garrysmod/lua/bin/
-          cp build/linux64/gmsv_navfast_linux64.dll dist/garrysmod/lua/bin/
+          cp build/win64/gmsv_navfast_win64.dll build/win32/gmsv_navfast_win32.dll \
+             build/linux64/gmsv_navfast_linux64.dll build/linux32/gmsv_navfast_linux.dll \
+             dist/garrysmod/lua/bin/
           cp -r addon/navfast dist/garrysmod/addons/
           cp README.md dist/
           (cd dist && cmake -E tar cf ../navfast.zip --format=zip garrysmod README.md)

@@ -33,10 +33,14 @@ Download `navfast.zip` from Releases and merge its `garrysmod/` folder into your
 `garrysmod/` folder:
 
 ```
-garrysmod/lua/bin/gmsv_navfast_win64.dll    (64-bit Windows server, x86-64 branch)
-garrysmod/lua/bin/gmsv_navfast_linux64.dll  (64-bit Linux server)
-garrysmod/addons/navfast/                    (Lua: command, progress UI)
+garrysmod/lua/bin/gmsv_navfast_win64.dll    (64-bit Windows srcds, srcds_win64.exe)
+garrysmod/lua/bin/gmsv_navfast_win32.dll    (32-bit Windows srcds, srcds.exe)
+garrysmod/lua/bin/gmsv_navfast_linux64.dll  (64-bit Linux srcds)
+garrysmod/lua/bin/gmsv_navfast_linux.dll    (32-bit Linux srcds)
+garrysmod/addons/navfast/                    (Lua: commands, progress UI, viewer)
 ```
+
+GMod only loads the module matching the server process's bitness; shipping all four is harmless.
 
 ## Usage
 
@@ -77,7 +81,8 @@ cmake --build build --config Release
 Targets: `navfast_module` (the GMod module), `navfast_cli` (replays a `.navjob` offline) and
 `world_probe` (collision world checks against a `.bsp` on disk).
 
-CI builds on a private self-hosted Linux runner (clang-cl + xwin for Windows, clang for Linux).
+CI builds all four modules on a private self-hosted Linux runner (clang-cl + xwin for Windows,
+clang for Linux, `-m32` via g++-multilib for 32-bit Linux).
 Pushing a `v*` tag publishes a release zip. The workflow has no `pull_request` trigger, so forks
 can never run jobs on that runner.
 
