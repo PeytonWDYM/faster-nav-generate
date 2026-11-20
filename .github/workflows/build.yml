@@ -1,0 +1,73 @@
+# Builds gmsv_navfast on the private self-hosted Linux runner:
+#   win64   - cross-compiled with clang-cl + xwin (LLVM 20 at /usr/lib/llvm-20/bin, SDK at /opt/xwin)
+#   linux64 - native clang
+# Tags matching v* publish a release zip laid out like a server's garrysmod/ folder.
+#
+# Runner safety: there is deliberately no pull_request trigger, so fork PRs can never schedule
+# jobs on the self-hosted runner, and every job is pinned to this repository.
+name: Build
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+    paths-ignore: ['**/*.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'PeytonWDYM/faster-nav-generate'
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 30
+    permissions:
+      contents: write  # release upload on tags
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build win64
+        run: |
+          cmake -S . -B build/win64 -G Ninja --toolchain cmake/clang-cl-xwin.cmake -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/win64
+
+      - name: Build linux64
+        run: |
+          cmake -S . -B build/linux64 -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_COMPILER=/usr/lib/llvm-20/bin/clang++
+          cmake --build build/linux64
+
+      - name: Package
+        run: |
+          rm -rf dist && mkdir -p dist/garrysmod/lua/bin dist/garrysmod/addons
+          cp build/win64/gmsv_navfast_win64.dll dist/garrysmod/lua/bin/
+          cp build/linux64/gmsv_navfast_linux64.dll dist/garrysmod/lua/bin/
+          cp -r addon/navfast dist/garrysmod/addons/
+          cp README.md dist/
+          (cd dist && cmake -E tar cf ../navfast.zip --format=zip garrysmod README.md)
+          sha256sum navfast.zip > SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: navfast
+          retention-days: 7
+          path: |
+            navfast.zip
+            SHA256SUMS
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            navfast.zip
+            SHA256SUMS
